@@ -27,9 +27,10 @@ class GroceriesDB(object):
                     rating,
                     featured,
                     vegetarian,
-                    vegan
+                    vegan,
+                    in_stock
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     product["shop_id"],
@@ -40,6 +41,7 @@ class GroceriesDB(object):
                     product["featured"],
                     product["vegetarian"],
                     product["vegan"],
+                    product["in_stock"],
                 ),
             )
         self.conn.commit()
@@ -68,6 +70,7 @@ class GroceriesDB(object):
                 featured INTEGER,
                 vegetarian INTEGER,
                 vegan INTEGER,
+                in_stock INTEGER,
                 FOREIGN KEY(shop_id) REFERENCES shop(shop_id)
                     
             )
