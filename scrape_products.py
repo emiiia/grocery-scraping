@@ -11,7 +11,7 @@ class ShopScraper(object):
         self.driver = webdriver.Firefox(options=options)
 
     def scrape(self, url, shop_id):
-        print('Getting', url)
+        print("Getting", url)
         self.driver.get(url)
         html = self.driver.page_source
         soup = BeautifulSoup(html, "html.parser")
@@ -20,7 +20,6 @@ class ShopScraper(object):
 
         product_list = [
             {
-                "shop_id": shop_id,
                 "name": "Kellogg's Crunchy Nut Breakfast Cereal 500g",
                 "price": 4,
                 "discounted_price": 3,
@@ -29,6 +28,9 @@ class ShopScraper(object):
                 "vegetarian": 0,
                 "vegan": 0,
                 "in_stock": 0,
+                "brand": "Crunchy Nut",
+                "company": "Kellog's",
+                "shop_id": shop_id,
             }
         ]
 

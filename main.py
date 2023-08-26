@@ -10,22 +10,26 @@ OCADO_CEREAL_URL = (
 
 
 def main():
-    # Initialise web driver
-    scraper = ShopScraper()
+    try:
+        # Initialise database
+        db = GroceriesDB()
 
-    # Initialise database
-    db = GroceriesDB()
+        # Initialise web driver
+        scraper = ShopScraper()
 
-    # Get Tesco products
-    shop_ids = db.get_shop_ids()
-    product_list = scraper.scrape(TESCO_CEREAL_URL, shop_ids.get("Tesco"))
+        # Get Tesco products
+        shop_ids = db.get_shop_ids()
+        product_list = scraper.scrape(TESCO_CEREAL_URL, shop_ids.get("Tesco"))
 
-    # Insert to Product table and close db
-    db.insert_data(product_list)
-    db.close()
-    scraper.close()
+        # Insert to Product table
+        db.insert_products(product_list)
+    except Exception as err:
+        print("Error", err)
+    finally:
+        # Close db and web driver
+        db.close()
+        scraper.close()
 
 
 if __name__ == "__main__":
     main()
-
