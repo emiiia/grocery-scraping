@@ -36,24 +36,31 @@ class ShopScraper(object):
 
             # Get prices
             price = None
-            price_p = li.find(
-                lambda tag: tag.name == "p"
-                and "price__text" in " ".join(tag.get("class", []))
-            )
+            price_p = li.find("p", text=re.compile("^£\d+(\.\d{1,2})?$"))
             if price_p and price_p.text and price_p.text.strip():
                 price = float(price_p.text.strip().replace("£", ""))
 
-            # Get promotion and promotion prices
-            promotion_text = None
+            # Get promotion (clubcard) prices
             promotion_price = None
+            promotion_price_span = li.find(
+                "span", text=re.compile("^£\d+(\.\d{1,2})? Clubcard Price$")
+            )
+            if (
+                promotion_price_span
+                and promotion_price_span.text
+                and promotion_price_span.text.strip()
+            ):
+                promotion_price = float(
+                    promotion_price_span.text.strip()
+                    .replace("£", "")
+                    .replace("Clubcard Price", "")
+                )
+
+            # Get promotion
+            promotion_text = None
             promotion_span = li.find("span", class_="offer-text")
             if promotion_span and promotion_span.text and promotion_span.text.strip():
                 promotion_text = promotion_span.text.strip()
-                # Get clubcard prices
-                if re.search("^£\d+(\.\d{1,2})? Clubcard Price$", promotion_text):
-                    promotion_price = float(
-                        promotion_text.replace("£", "").replace("Clubcard Price", "")
-                    )
 
             # Check whether product is out of stock
             in_stock = 1
