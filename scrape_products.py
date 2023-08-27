@@ -36,7 +36,8 @@ class ShopScraper(object):
             )
 
             # If required fields aren't found, skip product
-            if not title_link or not title_link.text or not title_link.text.strip():
+            title = self.get_tag_text(title_link)
+            if not title:
                 continue
 
             # Set initial values
@@ -51,28 +52,25 @@ class ShopScraper(object):
 
             # Get prices
             price_p = li.find("p", text=re.compile(r"^£\d+(\.\d{1,2})?$"))
-            if price_p and price_p.text and price_p.text.strip():
-                price = float(price_p.text.strip().replace("£", ""))
+            price_text = self.get_tag_text(price_p)
+            if price_text:
+                # Format to get decimal price
+                price = float(price_text.replace("£", ""))
 
             # Get promotion (clubcard) prices
             promotion_price_span = li.find(
                 "span", text=re.compile(r"^£\d+(\.\d{1,2})? Clubcard Price$")
             )
-            if (
-                promotion_price_span
-                and promotion_price_span.text
-                and promotion_price_span.text.strip()
-            ):
+            promotion_price_text = self.get_tag_text(promotion_price_span)
+            if promotion_price_text:
+                # Format to get decimal price
                 promotion_price = float(
-                    promotion_price_span.text.strip()
-                    .replace("£", "")
-                    .replace("Clubcard Price", "")
+                    promotion_price_text.replace("£", "").replace("Clubcard Price", "")
                 )
 
             # Get promotion
             promotion_span = li.find("span", class_="offer-text")
-            if promotion_span and promotion_span.text and promotion_span.text.strip():
-                promotion_text = promotion_span.text.strip()
+            promotion_text = self.get_tag_text(promotion_span)
 
             # Check whether product is out of stock
             # Price can be null if not in stock
@@ -101,12 +99,14 @@ class ShopScraper(object):
                     and "rating" in " ".join(tag.get("class", []))
                     and re.search(r"^\d(\.\d{1,1})?$", tag.text)
                 )
-                if rating_span and rating_span.text and rating_span.text.strip:
-                    rating = float(rating_span.text.strip())
+                rating_text = self.get_tag_text(rating_span)
+                if rating_text:
+                    # Format to get decimal rating
+                    rating = float(rating_text)
 
             product_list.append(
                 {
-                    "name": title_link.text.strip(),
+                    "name": title,
                     "price": price,
                     "promotion_price": promotion_price,
                     "promotion": promotion_text,
@@ -126,6 +126,11 @@ class ShopScraper(object):
                 break
 
         return product_list
+
+    def get_tag_text(self, tag):
+        """Helper function to check for null tag text"""
+        if tag:
+            return tag.get_text(separator=" ", strip=True)
 
     def close(self):
         self.driver.quit()
