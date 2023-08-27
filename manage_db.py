@@ -13,6 +13,7 @@ class GroceriesDB(object):
         self.conn.execute("pragma foreign_keys = on")
         self.conn.commit()
         self.cur = self.conn.cursor()
+        # Initialise shops dict
         self.shops = {"Tesco": 0, "Ocado": 1}
         self.create_tables()
 
@@ -97,9 +98,9 @@ class GroceriesDB(object):
             CREATE TABLE IF NOT EXISTS Product (
                 product_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
-                price INTEGER,
-                discounted_price INTEGER,
-                rating INTEGER,
+                price REAL,
+                discounted_price REAL,
+                rating REAL,
                 featured INTEGER,
                 vegetarian INTEGER,
                 vegan INTEGER,
