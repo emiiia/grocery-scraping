@@ -33,13 +33,26 @@ class ShopScraper(object):
                 )
             )
 
-            if not title_link or not title_link.text or not title_link.text.strip():
+            price_p = li.find(
+                lambda tag: tag.name == "p"
+                and "price__text" in " ".join(tag.get("class", []))
+            )
+
+            if price_p and price_p.text and price_p.text.strip():
+                price = float(price_p.text.strip().replace("£", ""))
+
+            if (
+                not title_link
+                or not title_link.text
+                or not title_link.text.strip()
+                or not price
+            ):
                 continue
 
             product_list.append(
                 {
                     "name": title_link.text.strip(),
-                    "price": 4,
+                    "price": price,
                     "discounted_price": 3,
                     "rating": 2,
                     "featured": 0,
