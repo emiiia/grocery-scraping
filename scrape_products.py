@@ -34,14 +34,26 @@ class ShopScraper(object):
                 )
             )
 
-            # Get prices
+            # If required fields aren't found, skip product
+            if not title_link or not title_link.text or not title_link.text.strip():
+                continue
+
+            # Set initial values
             price = None
+            promotion_price = None
+            promotion_text = None
+            rating = 0
+            featured = 0
+            vegetarian = 0
+            vegan = 0
+            in_stock = 1
+
+            # Get prices
             price_p = li.find("p", text=re.compile("^£\d+(\.\d{1,2})?$"))
             if price_p and price_p.text and price_p.text.strip():
                 price = float(price_p.text.strip().replace("£", ""))
 
             # Get promotion (clubcard) prices
-            promotion_price = None
             promotion_price_span = li.find(
                 "span", text=re.compile("^£\d+(\.\d{1,2})? Clubcard Price$")
             )
@@ -57,23 +69,18 @@ class ShopScraper(object):
                 )
 
             # Get promotion
-            promotion_text = None
             promotion_span = li.find("span", class_="offer-text")
             if promotion_span and promotion_span.text and promotion_span.text.strip():
                 promotion_text = promotion_span.text.strip()
 
             # Check whether product is out of stock
-            in_stock = 1
             # Price can be null if not in stock
-            if (
-                li.find("p", text=re.compile("This product's currently out of stock"))
-                or not price
-            ):
+            if li.find("p", text="This product's currently out of stock") or not price:
                 in_stock = 0
 
-            # If required fields aren't found, skip product
-            if not title_link or not title_link.text or not title_link.text.strip():
-                continue
+            # Check whether product is featured
+            if li.find("p", text="Sponsored"):
+                featured = 1
 
             product_list.append(
                 {
@@ -81,10 +88,10 @@ class ShopScraper(object):
                     "price": price,
                     "promotion_price": promotion_price,
                     "promotion": promotion_text,
-                    "rating": 2,
-                    "featured": 0,
-                    "vegetarian": 0,
-                    "vegan": 0,
+                    "rating": rating,
+                    "featured": featured,
+                    "vegetarian": vegetarian,
+                    "vegan": vegan,
                     "in_stock": in_stock,
                     "brand": "Crunchy Nut",
                     "company": "Kellog's",
