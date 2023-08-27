@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+import re
 
 
 class ShopScraper(object):
@@ -33,13 +34,27 @@ class ShopScraper(object):
                 )
             )
 
+            # Get prices
             price_p = li.find(
                 lambda tag: tag.name == "p"
                 and "price__text" in " ".join(tag.get("class", []))
             )
-
             if price_p and price_p.text and price_p.text.strip():
                 price = float(price_p.text.strip().replace("£", ""))
+
+            # Get promotion prices
+            promotion_price = None
+            promotion_price_span = li.find("span", class_="offer-text")
+            if (
+                promotion_price_span
+                and promotion_price_span.text
+                and promotion_price_span.text.strip()
+            ):
+                promotion_text = promotion_price_span.text.strip()
+                if re.search("^£\d+(\.\d{1,2})? Clubcard Price$", promotion_text):
+                    promotion_text = promotion_text.replace("£", "")
+                    promotion_text = promotion_text.replace("Clubcard Price", "")
+                    promotion_price = float(promotion_text)
 
             if (
                 not title_link
@@ -53,7 +68,7 @@ class ShopScraper(object):
                 {
                     "name": title_link.text.strip(),
                     "price": price,
-                    "promotion_price": 3,
+                    "promotion_price": promotion_price,
                     "rating": 2,
                     "featured": 0,
                     "vegetarian": 0,
