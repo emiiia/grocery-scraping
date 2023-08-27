@@ -35,6 +35,7 @@ class ShopScraper(object):
             )
 
             # Get prices
+            price = None
             price_p = li.find(
                 lambda tag: tag.name == "p"
                 and "price__text" in " ".join(tag.get("class", []))
@@ -48,19 +49,23 @@ class ShopScraper(object):
             promotion_span = li.find("span", class_="offer-text")
             if promotion_span and promotion_span.text and promotion_span.text.strip():
                 promotion_text = promotion_span.text.strip()
-                #
+                # Get clubcard prices
                 if re.search("^£\d+(\.\d{1,2})? Clubcard Price$", promotion_text):
                     promotion_price = float(
                         promotion_text.replace("£", "").replace("Clubcard Price", "")
                     )
 
-            # If required fields aren't found, skip product
+            # Check whether product is out of stock
+            in_stock = 1
+            # Price can be null if not in stock
             if (
-                not title_link
-                or not title_link.text
-                or not title_link.text.strip()
+                li.find("p", text=re.compile("This product's currently out of stock"))
                 or not price
             ):
+                in_stock = 0
+
+            # If required fields aren't found, skip product
+            if not title_link or not title_link.text or not title_link.text.strip():
                 continue
 
             product_list.append(
@@ -73,7 +78,7 @@ class ShopScraper(object):
                     "featured": 0,
                     "vegetarian": 0,
                     "vegan": 0,
-                    "in_stock": 0,
+                    "in_stock": in_stock,
                     "brand": "Crunchy Nut",
                     "company": "Kellog's",
                     "shop_id": shop_id,
