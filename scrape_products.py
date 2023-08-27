@@ -74,11 +74,14 @@ class ShopScraper(object):
 
             # Check whether product is out of stock
             # Price can be null if not in stock
-            if li.find("p", text="This product's currently out of stock") or not price:
+            if (
+                li.find("p", string="This product's currently out of stock")
+                or not price
+            ):
                 in_stock = 0
 
             # Check whether product is featured
-            if li.find("p", text="Sponsored"):
+            if li.find("p", string="Sponsored"):
                 featured = 1
 
             # Click on link to get detailed info
@@ -103,6 +106,19 @@ class ShopScraper(object):
                 if rating_text:
                     # Format to get decimal rating
                     rating = float(rating_text)
+
+                # Check whether vegetarian or vegan
+                vegetarian_tag = soup.find(
+                    None, text=re.compile("Suitable for Vegetarians", re.IGNORECASE)
+                )
+                vegan_tag = soup.find(
+                    None, text=re.compile("Suitable for Vegans", re.IGNORECASE)
+                )
+                if vegetarian_tag:
+                    vegetarian = 1
+                if vegan_tag:
+                    vegetarian = 1
+                    vegan = 1
 
             product_list.append(
                 {
