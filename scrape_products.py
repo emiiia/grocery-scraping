@@ -42,20 +42,19 @@ class ShopScraper(object):
             if price_p and price_p.text and price_p.text.strip():
                 price = float(price_p.text.strip().replace("£", ""))
 
-            # Get promotion prices
+            # Get promotion and promotion prices
+            promotion_text = None
             promotion_price = None
-            promotion_price_span = li.find("span", class_="offer-text")
-            if (
-                promotion_price_span
-                and promotion_price_span.text
-                and promotion_price_span.text.strip()
-            ):
-                promotion_text = promotion_price_span.text.strip()
+            promotion_span = li.find("span", class_="offer-text")
+            if promotion_span and promotion_span.text and promotion_span.text.strip():
+                promotion_text = promotion_span.text.strip()
+                #
                 if re.search("^£\d+(\.\d{1,2})? Clubcard Price$", promotion_text):
-                    promotion_text = promotion_text.replace("£", "")
-                    promotion_text = promotion_text.replace("Clubcard Price", "")
-                    promotion_price = float(promotion_text)
+                    promotion_price = float(
+                        promotion_text.replace("£", "").replace("Clubcard Price", "")
+                    )
 
+            # If required fields aren't found, skip product
             if (
                 not title_link
                 or not title_link.text
@@ -69,6 +68,7 @@ class ShopScraper(object):
                     "name": title_link.text.strip(),
                     "price": price,
                     "promotion_price": promotion_price,
+                    "promotion": promotion_text,
                     "rating": 2,
                     "featured": 0,
                     "vegetarian": 0,

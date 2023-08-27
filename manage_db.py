@@ -56,6 +56,7 @@ class GroceriesDB(object):
                     name,
                     price,
                     promotion_price,
+                    promotion,
                     rating,
                     featured,
                     vegetarian,
@@ -64,12 +65,13 @@ class GroceriesDB(object):
                     brand_id,
                     shop_id
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     product["name"],
                     product["price"],
                     product["promotion_price"],
+                    product["promotion"],
                     product["rating"],
                     product["featured"],
                     product["vegetarian"],
@@ -100,6 +102,7 @@ class GroceriesDB(object):
                 name TEXT,
                 price REAL,
                 promotion_price REAL,
+                promotion TEXT,
                 rating REAL,
                 featured INTEGER,
                 vegetarian INTEGER,
