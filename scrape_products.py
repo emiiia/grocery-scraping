@@ -11,8 +11,29 @@ class ShopScraper(object):
         options.add_argument("--headless=new")
         options.add_argument("--enable-javascript")
         self.driver = webdriver.Firefox(options=options)
+        # Predetermined DOM information
+        self.website_tags = {
+            "Tesco": {
+                "url": "https://www.tesco.com/groceries/en-GB/shop/food-cupboard/cereals/all",
+                "list_class": "product-list--list-item",
+                "title_tag": {"tag": "a", "class": "product-tile--title"},
+            },
+            "Ocado": {
+                "url": "https://www.ocado.com/browse/food-cupboard-20424/breakfast-cereals-38715",
+                "list_class": "fops-item fops-item--",
+                "title_tag": {"tag": "h4", "class": "fop-title"},
+            },
+        }
 
-    def scrape(self, url, shop_id):
+    def scrape(self, shop_name, shop_id):
+        if shop_name not in self.website_tags:
+            raise Exception("Shop cannot be scraped: f{shop_name}")
+
+        shop = self.website_tags[shop_name]
+        url = shop["url"]
+        list_class = shop["list_class"]
+        title_tag = shop["title_tag"]
+
         product_list = []
         print("Scraping", url)
         self.driver.get(url)
@@ -22,16 +43,15 @@ class ShopScraper(object):
         # Get product list items
         li_tags = soup.find_all(
             lambda tag: tag.name == "li"
-            and "product-list--list-item" in " ".join(tag.get("class", []))
+            and list_class in " ".join(tag.get("class", []))
         )
 
         for i, li in enumerate(li_tags):
             # Get product titles
             title_link = li.find(
-                lambda tag: tag.name == "a"
+                lambda tag: tag.name == title_tag["tag"]
                 and any(
-                    "product-tile--title" in str(value)
-                    for _, value in tag.attrs.items()
+                    title_tag["class"] in str(value) for _, value in tag.attrs.items()
                 )
             )
 
