@@ -55,7 +55,7 @@ class GroceriesDB(object):
                 INSERT INTO Product (
                     name,
                     price,
-                    discounted_price,
+                    promotion_price,
                     rating,
                     featured,
                     vegetarian,
@@ -69,7 +69,7 @@ class GroceriesDB(object):
                 (
                     product["name"],
                     product["price"],
-                    product["discounted_price"],
+                    product["promotion_price"],
                     product["rating"],
                     product["featured"],
                     product["vegetarian"],
@@ -99,7 +99,7 @@ class GroceriesDB(object):
                 product_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 price REAL,
-                discounted_price REAL,
+                promotion_price REAL,
                 rating REAL,
                 featured INTEGER,
                 vegetarian INTEGER,

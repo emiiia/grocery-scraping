@@ -53,7 +53,7 @@ class ShopScraper(object):
                 {
                     "name": title_link.text.strip(),
                     "price": price,
-                    "discounted_price": 3,
+                    "promotion_price": 3,
                     "rating": 2,
                     "featured": 0,
                     "vegetarian": 0,
