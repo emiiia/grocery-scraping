@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 import re
+from urllib.parse import urlparse
 
 
 class ShopScraper(object):
@@ -24,7 +25,7 @@ class ShopScraper(object):
             and "product-list--list-item" in " ".join(tag.get("class", []))
         )
 
-        for li in li_tags:
+        for i, li in enumerate(li_tags):
             # Get product titles
             title_link = li.find(
                 lambda tag: tag.name == "a"
@@ -49,13 +50,13 @@ class ShopScraper(object):
             in_stock = 1
 
             # Get prices
-            price_p = li.find("p", text=re.compile("^£\d+(\.\d{1,2})?$"))
+            price_p = li.find("p", text=re.compile(r"^£\d+(\.\d{1,2})?$"))
             if price_p and price_p.text and price_p.text.strip():
                 price = float(price_p.text.strip().replace("£", ""))
 
             # Get promotion (clubcard) prices
             promotion_price_span = li.find(
-                "span", text=re.compile("^£\d+(\.\d{1,2})? Clubcard Price$")
+                "span", text=re.compile(r"^£\d+(\.\d{1,2})? Clubcard Price$")
             )
             if (
                 promotion_price_span
@@ -82,6 +83,27 @@ class ShopScraper(object):
             if li.find("p", text="Sponsored"):
                 featured = 1
 
+            # Click on link to get detailed info
+            href = title_link.get("href")
+            if href:
+                # Get base url and add href to scrape product page
+                parsed_url = urlparse(url)
+                base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+                product_page_url = base_url + href
+                print("Scraping", product_page_url)
+                self.driver.get(product_page_url)
+                html = self.driver.page_source
+                soup = BeautifulSoup(html, "html.parser")
+
+                # Get rating
+                rating_span = soup.find(
+                    lambda tag: tag.name == "span"
+                    and "rating" in " ".join(tag.get("class", []))
+                    and re.search(r"^\d(\.\d{1,1})?$", tag.text)
+                )
+                if rating_span and rating_span.text and rating_span.text.strip:
+                    rating = float(rating_span.text.strip())
+
             product_list.append(
                 {
                     "name": title_link.text.strip(),
@@ -98,6 +120,10 @@ class ShopScraper(object):
                     "shop_id": shop_id,
                 }
             )
+
+            # TODO Remove
+            if i == 2:
+                break
 
         return product_list
 
