@@ -16,8 +16,8 @@ class ShopScraper(object):
         options.add_argument("--headless=new")
         options.add_argument("--enable-javascript")
         self.driver = webdriver.Chrome(options=options)
-        self.MAX_BRANDS = 3
-        self.MAX_PRODUCTS = 3
+        self.MAX_BRANDS = None
+        self.MAX_PRODUCTS = None
 
     def scrape_tesco_brands(self, shop_id):
         product_list = []
@@ -45,7 +45,7 @@ class ShopScraper(object):
                     href = link.get("href")
                     brand_url = self.get_url_with_href(url, href)
                     product_list += self.scrape_tesco(shop_id, brand_url, brand_tag)
-                    if i == self.MAX_BRANDS - 1:
+                    if self.MAX_BRANDS and i == self.MAX_BRANDS - 1:
                         break
                 except Exception as err:
                     print("Error scraping Tesco:", brand_url, err)
@@ -74,14 +74,14 @@ class ShopScraper(object):
         if ul:
             brand_links = ul.find_all("a")
             for i, link in enumerate(brand_links):
-                if i == self.MAX_BRANDS - 1:
-                    break
                 try:
                     href = link.get("href")
                     brand_url = self.get_url_with_href(url, href)
                     product_list += self.scrape_ocado(
                         shop_id, self.get_url_with_href(url, href), link
                     )
+                    if self.MAX_BRANDS and i == self.MAX_BRANDS - 1:
+                        break
                 except Exception as err:
                     print("Error scraping Ocado:", brand_url, err)
                     continue
@@ -139,7 +139,7 @@ class ShopScraper(object):
 
             product_list.append(product.get_product())
 
-            if i == self.MAX_PRODUCTS - 1:
+            if self.MAX_PRODUCTS and i == self.MAX_PRODUCTS - 1:
                 break
 
         return product_list
@@ -214,7 +214,7 @@ class ShopScraper(object):
 
             product_list.append(product.get_product())
 
-            if i == self.MAX_PRODUCTS - 1:
+            if self.MAX_PRODUCTS and i == self.MAX_PRODUCTS - 1:
                 break
 
         return product_list
