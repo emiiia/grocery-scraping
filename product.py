@@ -52,6 +52,9 @@ class Product(object):
         if brand:
             self.brand = brand.lower()
 
+    def get_brand(self):
+        return self.brand
+
     def set_price(self, price_tag):
         price_text = Product.get_tag_text(price_tag)
         if price_text:

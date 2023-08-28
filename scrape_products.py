@@ -16,6 +16,8 @@ class ShopScraper(object):
         options.add_argument("--headless=new")
         options.add_argument("--enable-javascript")
         self.driver = webdriver.Chrome(options=options)
+        self.MAX_BRANDS = 3
+        self.MAX_PRODUCTS = 3
 
     def scrape_tesco_brands(self, shop_id):
         product_list = []
@@ -37,13 +39,17 @@ class ShopScraper(object):
         brand_links = []
         if brands_div:
             brand_links = brands_div.find_all("a", class_="filter-option--link")
-            for link in brand_links:
-                brand_tag = link.find("span", class_="filter-label--line--inline")
-                href = link.get("href")
-                product_list = self.scrape_tesco(
-                    shop_id, self.get_url_with_href(url, href), brand_tag
-                )
-                break
+            for i, link in enumerate(brand_links):
+                try:
+                    brand_tag = link.find("span", class_="filter-label--line--inline")
+                    href = link.get("href")
+                    brand_url = self.get_url_with_href(url, href)
+                    product_list += self.scrape_tesco(shop_id, brand_url, brand_tag)
+                    if i == self.MAX_BRANDS - 1:
+                        break
+                except Exception as err:
+                    print("Error scraping Tesco:", brand_url, err)
+                    continue
 
         return product_list
 
@@ -67,12 +73,18 @@ class ShopScraper(object):
         brand_links = []
         if ul:
             brand_links = ul.find_all("a")
-            for link in brand_links:
-                href = link.get("href")
-                product_list = self.scrape_ocado(
-                    shop_id, self.get_url_with_href(url, href), link
-                )
-                break
+            for i, link in enumerate(brand_links):
+                if i == self.MAX_BRANDS - 1:
+                    break
+                try:
+                    href = link.get("href")
+                    brand_url = self.get_url_with_href(url, href)
+                    product_list += self.scrape_ocado(
+                        shop_id, self.get_url_with_href(url, href), link
+                    )
+                except Exception as err:
+                    print("Error scraping Ocado:", brand_url, err)
+                    continue
 
         return product_list
 
@@ -127,8 +139,7 @@ class ShopScraper(object):
 
             product_list.append(product.get_product())
 
-            # TODO Remove
-            if i == 2:
+            if i == self.MAX_PRODUCTS - 1:
                 break
 
         return product_list
@@ -203,8 +214,7 @@ class ShopScraper(object):
 
             product_list.append(product.get_product())
 
-            # TODO Remove
-            if i == 2:
+            if i == self.MAX_PRODUCTS - 1:
                 break
 
         return product_list
