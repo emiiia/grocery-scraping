@@ -3,6 +3,8 @@ from scrape_products import ShopScraper
 
 
 def main():
+    db = None
+    scraper = None
     try:
         # Initialise database
         db = GroceriesDB()
@@ -12,7 +14,7 @@ def main():
 
         # Get Tesco products
         shop_ids = db.get_shop_ids()
-        product_list = scraper.scrape("Tesco", shop_ids.get("Tesco"))
+        product_list = scraper.scrape_tescos(shop_ids.get("Tesco"))
         # product_list = scraper.scrape("Ocado", shop_ids.get("Ocado"))
 
         # Insert to Product table
@@ -21,8 +23,11 @@ def main():
         print("Error", err)
     finally:
         # Close db and web driver
-        db.close()
-        scraper.close()
+        if db:
+            db.close()
+
+        if scraper:
+            scraper.close()
 
 
 if __name__ == "__main__":

@@ -1,16 +1,20 @@
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 import re
 from urllib.parse import urlparse
+from product import Product
+
+PRICE_REGEX = r"^£\d+(\.\d{1,2})?$"
+RATING_REGEX = r"^\d(\.\d{1,1})?$"
 
 
 class ShopScraper(object):
     def __init__(self):
-        options = Options()
+        options = ChromeOptions()
         options.add_argument("--headless=new")
         options.add_argument("--enable-javascript")
-        self.driver = webdriver.Firefox(options=options)
+        self.driver = webdriver.Chrome(options=options)
         # Predetermined DOM information
         self.website_tags = {
             "Tesco": {
@@ -25,137 +29,77 @@ class ShopScraper(object):
             },
         }
 
-    def scrape(self, shop_name, shop_id):
-        if shop_name not in self.website_tags:
-            raise Exception("Shop cannot be scraped: f{shop_name}")
-
-        shop = self.website_tags[shop_name]
-        url = shop["url"]
-        list_class = shop["list_class"]
-        title_tag = shop["title_tag"]
-
-        product_list = []
-        print("Scraping", url)
+    def get_soup(self, url):
         self.driver.get(url)
         html = self.driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
+        return BeautifulSoup(html, "html.parser")
 
+    def get_list_items(self, soup, list_class):
         # Get product list items
-        li_tags = soup.find_all(
+        return soup.find_all(
             lambda tag: tag.name == "li"
             and list_class in " ".join(tag.get("class", []))
         )
 
-        for i, li in enumerate(li_tags):
-            # Get product titles
-            title_link = li.find(
-                lambda tag: tag.name == title_tag["tag"]
-                and any(
-                    title_tag["class"] in str(value) for _, value in tag.attrs.items()
-                )
-            )
+    def scrape_tescos(self, shop_id):
+        url = "https://www.tesco.com/groceries/en-GB/shop/food-cupboard/cereals/all"
+        print("Scraping", url)
+        soup = self.get_soup(url)
 
+        product_list = []
+        li_tags = self.get_list_items(soup, "product-list--list-item")
+        for i, li in enumerate(li_tags):
+            product = Product(shop_id)
+
+            # Set product title
+            product.set_title(li, "a", "product-tile--title")
             # If required fields aren't found, skip product
-            title = self.get_tag_text(title_link)
-            if not title:
+            if not product.get_title():
                 continue
 
-            # Set initial values
-            price = None
-            promotion_price = None
-            promotion_text = None
-            rating = 0
-            featured = 0
-            vegetarian = 0
-            vegan = 0
-            in_stock = 1
-
             # Get prices
-            price_p = li.find("p", text=re.compile(r"^£\d+(\.\d{1,2})?$"))
-            price_text = self.get_tag_text(price_p)
-            if price_text:
-                # Format to get decimal price
-                price = float(price_text.replace("£", ""))
+            price_p = li.find("p", text=re.compile(PRICE_REGEX))
+            product.set_price(price_p)
 
             # Get promotion (clubcard) prices
             promotion_price_span = li.find(
                 "span", text=re.compile(r"^£\d+(\.\d{1,2})? Clubcard Price$")
             )
-            promotion_price_text = self.get_tag_text(promotion_price_span)
+            promotion_price_text = Product.get_tag_text(promotion_price_span)
             if promotion_price_text:
                 # Format to get decimal price
-                promotion_price = float(
-                    promotion_price_text.replace("£", "").replace("Clubcard Price", "")
+                product.set_promotion_price(
+                    float(
+                        promotion_price_text.replace("£", "").replace(
+                            "Clubcard Price", ""
+                        )
+                    )
                 )
 
             # Get promotion
             promotion_span = li.find("span", class_="offer-text")
-            promotion_text = self.get_tag_text(promotion_span)
+            product.set_promotion(promotion_span)
 
-            # Check whether product is out of stock
-            # Price can be null if not in stock
-            if (
-                li.find("p", string="This product's currently out of stock")
-                or not price
-            ):
-                in_stock = 0
+            # Check whether item is in stock
+            product.set_in_stock(li)
 
             # Check whether product is featured
             if li.find("p", string="Sponsored"):
-                featured = 1
+                product.set_featured(1)
 
             # Click on link to get detailed info
-            href = title_link.get("href")
-            if href:
-                # Get base url and add href to scrape product page
-                parsed_url = urlparse(url)
-                base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-                product_page_url = base_url + href
-                print("Scraping", product_page_url)
-                self.driver.get(product_page_url)
-                html = self.driver.page_source
-                soup = BeautifulSoup(html, "html.parser")
-
+            product_soup = self.scrape_product_page(url, product.get_title_link())
+            if product_soup:
                 # Get rating
-                rating_span = soup.find(
+                rating_span = product_soup.find(
                     lambda tag: tag.name == "span"
                     and "rating" in " ".join(tag.get("class", []))
-                    and re.search(r"^\d(\.\d{1,1})?$", tag.text)
+                    and re.search(RATING_REGEX, tag.text)
                 )
-                rating_text = self.get_tag_text(rating_span)
-                if rating_text:
-                    # Format to get decimal rating
-                    rating = float(rating_text)
+                product.set_rating(rating_span)
+                product.set_vegan_vegetarian(product_soup)
 
-                # Check whether vegetarian or vegan
-                vegetarian_tag = soup.find(
-                    None, text=re.compile("Suitable for Vegetarians", re.IGNORECASE)
-                )
-                vegan_tag = soup.find(
-                    None, text=re.compile("Suitable for Vegans", re.IGNORECASE)
-                )
-                if vegetarian_tag:
-                    vegetarian = 1
-                if vegan_tag:
-                    vegetarian = 1
-                    vegan = 1
-
-            product_list.append(
-                {
-                    "name": title,
-                    "price": price,
-                    "promotion_price": promotion_price,
-                    "promotion": promotion_text,
-                    "rating": rating,
-                    "featured": featured,
-                    "vegetarian": vegetarian,
-                    "vegan": vegan,
-                    "in_stock": in_stock,
-                    "brand": "Crunchy Nut",
-                    "company": "Kellog's",
-                    "shop_id": shop_id,
-                }
-            )
+            product_list.append(product.get_product())
 
             # TODO Remove
             if i == 2:
@@ -163,10 +107,16 @@ class ShopScraper(object):
 
         return product_list
 
-    def get_tag_text(self, tag):
-        """Helper function to check for null tag text"""
-        if tag:
-            return tag.get_text(separator=" ", strip=True)
+    def scrape_product_page(self, url, anchor_tag):
+        # Click on link to get detailed info
+        href = anchor_tag.get("href")
+        if href:
+            # Get base url and add href to scrape product page
+            parsed_url = urlparse(url)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            product_page_url = base_url + href
+            print("Scraping", product_page_url)
+            return self.get_soup(product_page_url)
 
     def close(self):
         self.driver.quit()
