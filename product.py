@@ -13,8 +13,7 @@ class Product(object):
         self.vegetarian = 0
         self.vegan = 0
         self.in_stock = 1
-        self.brand = "Crunchy Nut"
-        self.company = "Kellog's"
+        self.brand = None
         self.shop_id = shop_id
 
     def set_title(self, li, tag_name: str, attr_value: str):
@@ -43,7 +42,6 @@ class Product(object):
             "vegan": self.vegan,
             "in_stock": self.in_stock,
             "brand": self.brand,
-            "company": self.company,
             "shop_id": self.shop_id,
         }
 
@@ -97,11 +95,8 @@ class Product(object):
         ):
             self.in_stock = 0
 
-    def set_brand(self, brand: str):
-        self.brand = brand
-
-    def set_company(self, company: str):
-        self.company = company
+    def set_brand(self, brand):
+        self.brand = Product.get_tag_text(brand)
 
     @staticmethod
     def get_tag_text(tag):

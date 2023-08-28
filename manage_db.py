@@ -17,38 +17,24 @@ class GroceriesDB(object):
         self.shops = {"Tesco": 0, "Ocado": 1}
         self.create_tables()
 
-    def insert_company(self, company_name):
+    def insert_brand(self, brand_name):
         self.cur.execute(
-            "INSERT OR IGNORE INTO Company (name) VALUES (?)",
-            (company_name,),
-        )
-        self.conn.commit()
-
-        # Return company id
-        self.cur.execute(
-            "SELECT company_id FROM Company WHERE name = ?;", (company_name,)
-        )
-        return self.cur.fetchone()[0]
-
-    def insert_brand(self, brand_name, company_id):
-        self.cur.execute(
-            "INSERT OR IGNORE INTO Brand (name, company_id) VALUES (?, ?);",
-            (brand_name, company_id),
+            "INSERT OR IGNORE INTO Brand (name) VALUES (?);",
+            (brand_name,),
         )
         self.conn.commit()
 
         # Return brand id
         self.cur.execute(
-            "SELECT brand_id FROM Brand WHERE company_id = ? AND name = ?;",
-            (company_id, brand_name),
+            "SELECT brand_id FROM Brand WHERE name = ?;",
+            (brand_name,),
         )
         return self.cur.fetchone()[0]
 
     def insert_products(self, product_list):
         for product in product_list:
-            # Create company and brand if not exists
-            company_id = self.insert_company(product["company"])
-            brand_id = self.insert_brand(product["brand"], company_id)
+            # Create brand if not exists
+            brand_id = self.insert_brand(product["brand"])
 
             self.cur.execute(
                 """
@@ -117,25 +103,13 @@ class GroceriesDB(object):
         """
         )
 
-        # Create company table
-        self.cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS Company (
-                company_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE
-            )
-        """
-        )
-
         # Create brand table
         self.cur.execute(
             """
             CREATE TABLE IF NOT EXISTS Brand (
                 brand_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
-                company_id INTEGER,
-                FOREIGN KEY (company_id) REFERENCES Company(company_id),
-                UNIQUE(company_id, name)
+                UNIQUE(name)
             )
         """
         )

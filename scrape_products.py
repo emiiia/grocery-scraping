@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 import re
 from urllib.parse import urlparse
 from product import Product
+from selenium.webdriver.common.by import By
 
 PRICE_REGEX = r"^£\d+(\.\d{1,2})?$"
 RATING_REGEX = r"^\d(\.\d{1,1})?$"
@@ -41,8 +42,37 @@ class ShopScraper(object):
             and list_class in " ".join(tag.get("class", []))
         )
 
-    def scrape_tesco(self, shop_id):
+    def scrape_tesco_brands(self, shop_id):
+        product_list = []
         url = "https://www.tesco.com/groceries/en-GB/shop/food-cupboard/cereals/all"
+        self.driver.get(url)
+        self.driver.implicitly_wait(10)
+
+        # Open brands tab
+        button = self.driver.find_element(
+            By.XPATH, '//button[@aria-controls="filter-brands"]'
+        )
+        self.driver.implicitly_wait(10)
+        button.click()
+        html = self.driver.page_source
+        soup = BeautifulSoup(html, "html.parser")
+        brands_div = soup.find("div", id="filter-brands")
+
+        # Find links within brands tab
+        brand_links = []
+        if brands_div:
+            brand_links = brands_div.find_all("a", class_="filter-option--link")
+            for link in brand_links:
+                brand_tag = link.find("span", class_="filter-label--line--inline")
+                href = link.get("href")
+                product_list = self.scrape_tesco(
+                    shop_id, self.get_url_with_href(url, href), brand_tag
+                )
+                break
+
+        return product_list
+
+    def scrape_tesco(self, shop_id, url, brand_tag):
         print("Scraping", url)
         soup = self.get_soup(url)
 
@@ -56,6 +86,9 @@ class ShopScraper(object):
             # If required fields aren't found, skip product
             if not product.get_title():
                 continue
+
+            # Set brand name
+            product.set_brand(brand_tag)
 
             # Get prices
             product.set_price(li.find("p", text=re.compile(PRICE_REGEX)))
@@ -174,12 +207,15 @@ class ShopScraper(object):
         # Click on link to get detailed info
         href = anchor_tag.get("href")
         if href:
-            # Get base url and add href to scrape product page
-            parsed_url = urlparse(url)
-            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-            product_page_url = base_url + href
+            product_page_url = self.get_url_with_href(url, href)
             print("Scraping", product_page_url)
             return self.get_soup(product_page_url)
+
+    def get_url_with_href(self, url, href):
+        # Get base url and add href
+        parsed_url = urlparse(url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        return base_url + href
 
     def close(self):
         self.driver.quit()
