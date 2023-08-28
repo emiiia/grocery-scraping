@@ -41,7 +41,7 @@ class ShopScraper(object):
             and list_class in " ".join(tag.get("class", []))
         )
 
-    def scrape_tescos(self, shop_id):
+    def scrape_tesco(self, shop_id):
         url = "https://www.tesco.com/groceries/en-GB/shop/food-cupboard/cereals/all"
         print("Scraping", url)
         soup = self.get_soup(url)
@@ -58,27 +58,16 @@ class ShopScraper(object):
                 continue
 
             # Get prices
-            price_p = li.find("p", text=re.compile(PRICE_REGEX))
-            product.set_price(price_p)
+            product.set_price(li.find("p", text=re.compile(PRICE_REGEX)))
 
             # Get promotion (clubcard) prices
-            promotion_price_span = li.find(
-                "span", text=re.compile(r"^£\d+(\.\d{1,2})? Clubcard Price$")
+            product.set_promotion_price(
+                li.find("span", text=re.compile(r"^£\d+(\.\d{1,2})? Clubcard Price$")),
+                "Clubcard Price",
             )
-            promotion_price_text = Product.get_tag_text(promotion_price_span)
-            if promotion_price_text:
-                # Format to get decimal price
-                product.set_promotion_price(
-                    float(
-                        promotion_price_text.replace("£", "").replace(
-                            "Clubcard Price", ""
-                        )
-                    )
-                )
 
             # Get promotion
-            promotion_span = li.find("span", class_="offer-text")
-            product.set_promotion(promotion_span)
+            product.set_promotion(li.find("span", class_="offer-text"))
 
             # Check whether item is in stock
             product.set_in_stock(li)
@@ -88,7 +77,7 @@ class ShopScraper(object):
                 product.set_featured(1)
 
             # Click on link to get detailed info
-            product_soup = self.scrape_product_page(url, product.get_title_link())
+            product_soup = self.scrape_product_page(url, product.get_product_link(li))
             if product_soup:
                 # Get rating
                 rating_span = product_soup.find(
@@ -97,6 +86,80 @@ class ShopScraper(object):
                     and re.search(RATING_REGEX, tag.text)
                 )
                 product.set_rating(rating_span)
+                product.set_vegan_vegetarian(product_soup)
+
+            product_list.append(product.get_product())
+
+            # TODO Remove
+            if i == 2:
+                break
+
+        return product_list
+
+    def scrape_ocado(self, shop_id):
+        url = "https://www.ocado.com/browse/food-cupboard-20424/breakfast-cereals-38715"
+        print("Scraping", url)
+        soup = self.get_soup(url)
+
+        product_list = []
+        li_tags = self.get_list_items(soup, "fops-item fops-item--")
+        for i, li in enumerate(li_tags):
+            product = Product(shop_id)
+
+            # Set product title
+            product.set_title(li, "h4", "fop-title")
+            # If required fields aren't found, skip product
+            if not product.get_title():
+                continue
+
+            # Get prices - first find old price if there is a promotion
+            price_span = li.find(
+                lambda tag: tag.name == "span"
+                and "fop-old-price" in " ".join(tag.get("class", []))
+                and re.search(PRICE_REGEX, tag.text)
+            )
+            if not price_span:
+                # If no promotion - set price
+                price_span = li.find("span", class_="fop-price")
+            else:
+                # Get promotion price
+                promotion_price_span = li.find(
+                    lambda tag: tag.name == "span"
+                    and "fop-price price-offer" in " ".join(tag.get("class", []))
+                    and re.search(PRICE_REGEX, tag.text)
+                )
+                product.set_promotion_price(promotion_price_span)
+            product.set_price(price_span)
+
+            # Get promotion
+            product.set_promotion(
+                li.find(
+                    lambda tag: tag.name == "a"
+                    and "promotion-offer" in " ".join(tag.get("class", []))
+                )
+            )
+
+            # Check whether item is in stock
+            product.set_in_stock(li)
+
+            # Check whether product is featured
+            if li.find(
+                lambda tag: tag.name == "div"
+                and "featured" in " ".join(tag.get("class", []))
+            ):
+                product.featured = 1
+
+            # Click on link to get detailed info
+            product_soup = self.scrape_product_page(url, product.get_product_link(li))
+            if product_soup:
+                # Get rating
+                rating_span = product_soup.find(
+                    lambda tag: tag.name == "span"
+                    and "reviewSummary" in " ".join(tag.get("class", []))
+                    and any("rating" in str(value) for _, value in tag.attrs.items())
+                )
+                product.set_rating(rating_span)
+
                 product.set_vegan_vegetarian(product_soup)
 
             product_list.append(product.get_product())

@@ -5,7 +5,6 @@ class Product(object):
     def __init__(self, shop_id: int):
         # Set initial values
         self.title = None
-        self.title_link = None
         self.price = None
         self.promotion_price = None
         self.promotion_text = None
@@ -18,19 +17,19 @@ class Product(object):
         self.company = "Kellog's"
         self.shop_id = shop_id
 
-    def set_title(self, li, tag_name: str, title_class: str):
-        # Get product list items
-        self.title_link = li.find(
+    def set_title(self, li, tag_name: str, attr_value: str):
+        # Find given tag with given attribute value
+        title_tag = li.find(
             lambda tag: tag.name == tag_name
-            and any(title_class in str(value) for _, value in tag.attrs.items())
+            and any(attr_value in str(value) for _, value in tag.attrs.items())
         )
-        self.title = Product.get_tag_text(self.title_link)
+        self.title = Product.get_tag_text(title_tag)
 
     def get_title(self):
         return self.title
 
-    def get_title_link(self):
-        return self.title_link
+    def get_product_link(self, li):
+        return li.find("a", href=lambda href: href and "/products" in href)
 
     def get_product(self):
         return {
@@ -54,8 +53,13 @@ class Product(object):
             # Format to get decimal price
             self.price = float(price_text.replace("£", ""))
 
-    def set_promotion_price(self, price: float):
-        self.promotion_price = price
+    def set_promotion_price(self, price_tag, replace_text=None):
+        price_text = Product.get_tag_text(price_tag)
+        if price_text:
+            # Format to get decimal price
+            self.promotion_price = float(
+                price_text.replace("£", "").replace(replace_text, "")
+            )
 
     def set_promotion(self, promotion_tag):
         self.promotion = Product.get_tag_text(promotion_tag)
@@ -88,7 +92,7 @@ class Product(object):
         # Check whether product is out of stock
         # Price can be null if not in stock
         if (
-            tag.find("p", string="This product's currently out of stock")
+            tag.find("p", text=re.compile("out of stock", re.IGNORECASE))
             or not self.price
         ):
             self.in_stock = 0
