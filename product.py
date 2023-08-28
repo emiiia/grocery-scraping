@@ -22,7 +22,9 @@ class Product(object):
             lambda tag: tag.name == tag_name
             and any(attr_value in str(value) for _, value in tag.attrs.items())
         )
-        self.title = Product.get_tag_text(title_tag)
+        title = Product.get_tag_text(title_tag)
+        if title:
+            self.title = title.lower()
 
     def get_title(self):
         return self.title
@@ -44,6 +46,11 @@ class Product(object):
             "brand": self.brand,
             "shop_id": self.shop_id,
         }
+
+    def set_brand(self, brand):
+        brand = Product.get_tag_text(brand)
+        if brand:
+            self.brand = brand.lower()
 
     def set_price(self, price_tag):
         price_text = Product.get_tag_text(price_tag)
@@ -94,9 +101,6 @@ class Product(object):
             or not self.price
         ):
             self.in_stock = 0
-
-    def set_brand(self, brand):
-        self.brand = Product.get_tag_text(brand)
 
     @staticmethod
     def get_tag_text(tag):
