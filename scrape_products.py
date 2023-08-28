@@ -72,6 +72,35 @@ class ShopScraper(object):
 
         return product_list
 
+    def scrape_ocado_brands(self, shop_id):
+        product_list = []
+        url = "https://www.ocado.com/browse/food-cupboard-20424/breakfast-cereals-38715"
+        soup = self.get_soup(url)
+
+        # Find the ul containing brand links
+        ul = None
+        div = soup.find(
+            lambda tag: tag.name == "div"
+            and "filter-list" in " ".join(tag.get("class", []))
+        )
+        if div:
+            h3 = div.find("h3", text="Brands")
+            if h3:
+                ul = h3.find_next("ul")
+
+        # Find links within brands tab
+        brand_links = []
+        if ul:
+            brand_links = ul.find_all("a")
+            for link in brand_links:
+                href = link.get("href")
+                product_list = self.scrape_ocado(
+                    shop_id, self.get_url_with_href(url, href), link
+                )
+                break
+
+        return product_list
+
     def scrape_tesco(self, shop_id, url, brand_tag):
         print("Scraping", url)
         soup = self.get_soup(url)
@@ -129,8 +158,7 @@ class ShopScraper(object):
 
         return product_list
 
-    def scrape_ocado(self, shop_id):
-        url = "https://www.ocado.com/browse/food-cupboard-20424/breakfast-cereals-38715"
+    def scrape_ocado(self, shop_id, url, brand_tag):
         print("Scraping", url)
         soup = self.get_soup(url)
 
@@ -144,6 +172,9 @@ class ShopScraper(object):
             # If required fields aren't found, skip product
             if not product.get_title():
                 continue
+
+            # Set brand name
+            product.set_brand(brand_tag)
 
             # Get prices - first find old price if there is a promotion
             price_span = li.find(
