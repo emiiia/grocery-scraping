@@ -14,7 +14,7 @@ class GroceriesDB(object):
         self.conn.commit()
         self.cur = self.conn.cursor()
         # Initialise shops dict
-        self.shops = {"Tesco": 0, "Ocado": 1}
+        self.shops = {"tesco": 0, "ocado": 1}
         self.create_tables()
 
     def insert_brand(self, brand_name):

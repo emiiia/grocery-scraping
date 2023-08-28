@@ -15,8 +15,8 @@ def main():
 
         # Get Tesco products
         shop_ids = db.get_shop_ids()
-        product_list = scraper.scrape_tesco_brands(shop_ids.get("Tesco"))
-        product_list += scraper.scrape_ocado_brands(shop_ids.get("Ocado"))
+        product_list = scraper.scrape_tesco_brands(shop_ids.get("tesco"))
+        product_list += scraper.scrape_ocado_brands(shop_ids.get("ocado"))
 
         # Insert to Product table
         db.insert_products(product_list)
