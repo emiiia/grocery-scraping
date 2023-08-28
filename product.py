@@ -65,9 +65,10 @@ class Product(object):
         price_text = Product.get_tag_text(price_tag)
         if price_text:
             # Format to get decimal price
-            self.promotion_price = float(
-                price_text.replace("£", "").replace(replace_text, "")
-            )
+            price_text = price_text.replace("£", "")
+            if replace_text:
+                price_text = price_text.replace("£", "")
+            self.promotion_price = float(price_text)
 
     def set_promotion(self, promotion_tag):
         self.promotion = Product.get_tag_text(promotion_tag)
