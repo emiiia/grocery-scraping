@@ -16,19 +16,6 @@ class ShopScraper(object):
         options.add_argument("--headless=new")
         options.add_argument("--enable-javascript")
         self.driver = webdriver.Chrome(options=options)
-        # Predetermined DOM information
-        self.website_tags = {
-            "Tesco": {
-                "url": "https://www.tesco.com/groceries/en-GB/shop/food-cupboard/cereals/all",
-                "list_class": "product-list--list-item",
-                "title_tag": {"tag": "a", "class": "product-tile--title"},
-            },
-            "Ocado": {
-                "url": "https://www.ocado.com/browse/food-cupboard-20424/breakfast-cereals-38715",
-                "list_class": "fops-item fops-item--",
-                "title_tag": {"tag": "h4", "class": "fop-title"},
-            },
-        }
 
     def get_soup(self, url):
         self.driver.get(url)
