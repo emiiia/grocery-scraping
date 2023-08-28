@@ -17,18 +17,6 @@ class ShopScraper(object):
         options.add_argument("--enable-javascript")
         self.driver = webdriver.Chrome(options=options)
 
-    def get_soup(self, url):
-        self.driver.get(url)
-        html = self.driver.page_source
-        return BeautifulSoup(html, "html.parser")
-
-    def get_list_items(self, soup, list_class):
-        # Get product list items
-        return soup.find_all(
-            lambda tag: tag.name == "li"
-            and list_class in " ".join(tag.get("class", []))
-        )
-
     def scrape_tesco_brands(self, shop_id):
         product_list = []
         url = "https://www.tesco.com/groceries/en-GB/shop/food-cupboard/cereals/all"
@@ -99,12 +87,12 @@ class ShopScraper(object):
 
             # Set product title
             product.set_title(li, "a", "product-tile--title")
-            # If required fields aren't found, skip product
-            if not product.get_title():
-                continue
-
             # Set brand name
             product.set_brand(brand_tag)
+
+            # If required fields aren't found, skip product
+            if not product.get_title() or not product.get_brand():
+                continue
 
             # Get prices
             product.set_price(li.find("p", text=re.compile(PRICE_REGEX)))
@@ -228,6 +216,18 @@ class ShopScraper(object):
             product_page_url = self.get_url_with_href(url, href)
             print("Scraping", product_page_url)
             return self.get_soup(product_page_url)
+
+    def get_soup(self, url):
+        self.driver.get(url)
+        html = self.driver.page_source
+        return BeautifulSoup(html, "html.parser")
+
+    def get_list_items(self, soup, list_class):
+        # Get product list items
+        return soup.find_all(
+            lambda tag: tag.name == "li"
+            and list_class in " ".join(tag.get("class", []))
+        )
 
     def get_url_with_href(self, url, href):
         # Get base url and add href
